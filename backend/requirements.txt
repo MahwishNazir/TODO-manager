@@ -1,0 +1,2 @@
+# Production dependencies for Phase I
+# Phase I uses only Python standard library - no external dependencies required
