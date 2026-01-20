@@ -1,2 +1,20 @@
-# Production dependencies for Phase I
-# Phase I uses only Python standard library - no external dependencies required
+# Production dependencies for Phase II Step 1
+# Web framework and database
+fastapi>=0.104.0
+sqlmodel>=0.0.14
+uvicorn[standard]>=0.24.0
+
+# PostgreSQL driver
+psycopg2-binary>=2.9.0
+
+# Database migrations
+alembic>=1.13.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Validation (included with FastAPI but explicit for clarity)
+pydantic>=2.5.0
+
+# JWT Authentication (Phase II Step 2)
+PyJWT>=2.10.0

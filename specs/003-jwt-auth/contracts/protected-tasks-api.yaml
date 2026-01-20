@@ -1,0 +1,439 @@
+openapi: 3.0.0
+info:
+  title: Protected Tasks API
+  version: 1.0.0
+  description: |
+    JWT-protected task management endpoints for the TODO application.
+    All endpoints require valid JWT token in Authorization header.
+    User isolation is enforced automatically via JWT user_id claim.
+
+    **IMPORTANT**: These are the existing Step 1 endpoints with JWT authentication added.
+    API contracts (paths, request/response schemas) remain UNCHANGED.
+    Only difference: Authorization header is now REQUIRED.
+
+servers:
+  - url: http://localhost:8000/api
+    description: Development server (FastAPI)
+  - url: https://api.todo-app.example.com/api
+    description: Production server
+
+components:
+  schemas:
+    TaskCreate:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Task description (trimmed, non-empty)
+          example: Buy groceries
+
+    TaskUpdate:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: New task description (trimmed, non-empty)
+          example: Buy organic groceries
+
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Task unique identifier
+          example: 1
+        user_id:
+          type: string
+          description: User identifier (automatically set from JWT token)
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          description: Task description
+          example: Buy groceries
+        is_completed:
+          type: boolean
+          description: Task completion status
+          example: false
+        created_at:
+          type: string
+          format: date-time
+          description: Task creation timestamp
+          example: 2026-01-12T10:00:00Z
+        updated_at:
+          type: string
+          format: date-time
+          description: Task last update timestamp
+          example: 2026-01-12T10:00:00Z
+
+    TaskListResponse:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+          description: List of tasks (filtered by JWT user_id)
+        count:
+          type: integer
+          description: Number of tasks returned
+          example: 5
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type or category
+          example: Validation error
+        detail:
+          type: string
+          description: Human-readable error message
+          example: Task title cannot be empty
+        type:
+          type: string
+          description: Machine-readable error type identifier
+          example: validation_error
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from authentication endpoints.
+        Include in Authorization header: "Bearer <token>"
+        Token must contain valid user_id claim.
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingToken:
+              summary: No token provided
+              value:
+                error: Unauthorized
+                detail: Not authenticated
+                type: authentication_error
+            expiredToken:
+              summary: Token has expired
+              value:
+                error: Unauthorized
+                detail: Token has expired
+                type: token_expired
+            invalidToken:
+              summary: Invalid or tampered token
+              value:
+                error: Unauthorized
+                detail: Invalid token signature
+                type: invalid_token
+
+security:
+  - BearerAuth: []
+
+paths:
+  /{user_id}/tasks:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: |
+          User identifier (MUST match JWT token's sub claim).
+          Kept for backward compatibility with Step 1 API.
+          Backend validates user_id matches JWT token.
+
+    post:
+      summary: Create new task
+      description: |
+        Creates a new task for the authenticated user.
+        user_id is automatically extracted from JWT token.
+        Path parameter user_id must match JWT token's sub claim.
+      operationId: createTask
+      tags:
+        - Tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+            examples:
+              validTask:
+                summary: Create task
+                value:
+                  title: Buy groceries
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+              examples:
+                success:
+                  summary: Task created
+                  value:
+                    id: 1
+                    user_id: 550e8400-e29b-41d4-a716-446655440000
+                    title: Buy groceries
+                    is_completed: false
+                    created_at: 2026-01-12T10:00:00Z
+                    updated_at: 2026-01-12T10:00:00Z
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emptyTitle:
+                  summary: Empty title
+                  value:
+                    error: Validation error
+                    detail: Task title cannot be empty or whitespace-only
+                    type: validation_error
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - user_id mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                userMismatch:
+                  summary: Path user_id doesn't match JWT
+                  value:
+                    error: Forbidden
+                    detail: Cannot access other user's tasks
+                    type: authorization_error
+
+    get:
+      summary: List all tasks for user
+      description: |
+        Retrieves all tasks for the authenticated user.
+        Automatically filtered by JWT token's user_id.
+        Path parameter user_id must match JWT token.
+      operationId: listTasks
+      tags:
+        - Tasks
+      responses:
+        '200':
+          description: Tasks retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+              examples:
+                withTasks:
+                  summary: User has tasks
+                  value:
+                    tasks:
+                      - id: 1
+                        user_id: 550e8400-e29b-41d4-a716-446655440000
+                        title: Buy groceries
+                        is_completed: false
+                        created_at: 2026-01-12T10:00:00Z
+                        updated_at: 2026-01-12T10:00:00Z
+                      - id: 2
+                        user_id: 550e8400-e29b-41d4-a716-446655440000
+                        title: Walk the dog
+                        is_completed: true
+                        created_at: 2026-01-12T09:00:00Z
+                        updated_at: 2026-01-12T11:00:00Z
+                    count: 2
+                emptyList:
+                  summary: User has no tasks
+                  value:
+                    tasks: []
+                    count: 0
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - user_id mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /{user_id}/tasks/{id}:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User identifier (must match JWT token)
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Task ID to retrieve, update, or delete
+
+    get:
+      summary: Get task by ID
+      description: |
+        Retrieves a specific task by ID.
+        Task must belong to authenticated user (verified via JWT).
+      operationId: getTask
+      tags:
+        - Tasks
+      responses:
+        '200':
+          description: Task found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - user_id mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found or doesn't belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  summary: Task not found
+                  value:
+                    error: Not found
+                    detail: Task not found
+                    type: not_found
+
+    put:
+      summary: Update task (replace)
+      description: |
+        Completely replaces task title.
+        Task must belong to authenticated user.
+      operationId: updateTask
+      tags:
+        - Tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+            examples:
+              updateTitle:
+                summary: Update task title
+                value:
+                  title: Buy organic groceries
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - user_id mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found or doesn't belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Toggle task completion status
+      description: |
+        Toggles is_completed between true and false.
+        Task must belong to authenticated user.
+      operationId: toggleTaskStatus
+      tags:
+        - Tasks
+      responses:
+        '200':
+          description: Task status toggled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+              examples:
+                completed:
+                  summary: Task marked complete
+                  value:
+                    id: 1
+                    user_id: 550e8400-e29b-41d4-a716-446655440000
+                    title: Buy groceries
+                    is_completed: true
+                    created_at: 2026-01-12T10:00:00Z
+                    updated_at: 2026-01-12T12:30:00Z
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - user_id mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found or doesn't belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete task
+      description: |
+        Permanently deletes a task.
+        Task must belong to authenticated user.
+      operationId: deleteTask
+      tags:
+        - Tasks
+      responses:
+        '204':
+          description: Task deleted successfully (no content)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - user_id mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found or doesn't belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Tasks
+    description: Task management operations (all require JWT authentication)

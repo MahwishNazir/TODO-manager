@@ -1,0 +1,340 @@
+openapi: 3.0.0
+info:
+  title: Authentication API
+  version: 1.0.0
+  description: |
+    JWT-based authentication endpoints for the TODO application.
+    Uses Better Auth on Next.js frontend to issue JWT tokens validated by FastAPI backend.
+
+servers:
+  - url: http://localhost:3000/api/auth
+    description: Development server (Next.js API routes)
+  - url: https://todo-app.example.com/api/auth
+    description: Production server
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address (unique identifier)
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: User password (minimum 8 characters)
+          example: securePassword123
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          description: User password
+          example: securePassword123
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT access token (HS256 signed)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJpYXQiOjE3MDQwNjcyMDAsImV4cCI6MTcwNDA3MDgwMCwiaXNzIjoidG9kby1hcHAiLCJhdWQiOiJ0b2RvLWFwaSJ9.signature
+        user:
+          type: object
+          properties:
+            user_id:
+              type: string
+              format: uuid
+              description: Unique user identifier
+              example: 550e8400-e29b-41d4-a716-446655440000
+            email:
+              type: string
+              format: email
+              description: User email address
+              example: user@example.com
+        expires_in:
+          type: integer
+          description: Token expiration time in seconds
+          example: 3600
+
+    RefreshResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: New JWT access token with extended expiration
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        expires_in:
+          type: integer
+          description: New token expiration time in seconds
+          example: 3600
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type or category
+          example: authentication_failed
+        detail:
+          type: string
+          description: Human-readable error message
+          example: Invalid email or password
+        type:
+          type: string
+          description: Machine-readable error type identifier
+          example: authentication_error
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login or register endpoints
+
+paths:
+  /register:
+    post:
+      summary: Register new user account
+      description: |
+        Creates a new user account with email and password.
+        Returns JWT token for immediate authentication after registration.
+      operationId: registerUser
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              validRegistration:
+                summary: Valid registration
+                value:
+                  email: newuser@example.com
+                  password: securePassword123
+      responses:
+        '201':
+          description: User registered successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: auth_token=eyJhbGci...; HttpOnly; Secure; SameSite=Lax; Max-Age=3600; Path=/
+              description: JWT token set as HttpOnly cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Successful registration
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    user:
+                      user_id: 550e8400-e29b-41d4-a716-446655440000
+                      email: newuser@example.com
+                    expires_in: 3600
+        '400':
+          description: Invalid request (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                weakPassword:
+                  summary: Password too short
+                  value:
+                    error: validation_error
+                    detail: Password must be at least 8 characters
+                    type: validation_error
+                invalidEmail:
+                  summary: Invalid email format
+                  value:
+                    error: validation_error
+                    detail: Invalid email format
+                    type: validation_error
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                duplicateEmail:
+                  summary: Email already exists
+                  value:
+                    error: conflict
+                    detail: Email already registered
+                    type: duplicate_email
+
+  /login:
+    post:
+      summary: Login to existing account
+      description: |
+        Authenticates user with email and password credentials.
+        Returns JWT token valid for 1 hour.
+      operationId: loginUser
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              validLogin:
+                summary: Valid login credentials
+                value:
+                  email: user@example.com
+                  password: securePassword123
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: auth_token=eyJhbGci...; HttpOnly; Secure; SameSite=Lax; Max-Age=3600; Path=/
+              description: JWT token set as HttpOnly cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Successful login
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    user:
+                      user_id: 550e8400-e29b-41d4-a716-446655440000
+                      email: user@example.com
+                    expires_in: 3600
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCredentials:
+                  summary: Invalid email or password
+                  value:
+                    error: authentication_failed
+                    detail: Invalid email or password
+                    type: authentication_error
+
+  /refresh:
+    post:
+      summary: Refresh JWT token
+      description: |
+        Issues a new JWT token with extended expiration.
+        Requires valid (not expired) JWT token in Authorization header or cookie.
+      operationId: refreshToken
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Token refreshed successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: auth_token=eyJhbGci...; HttpOnly; Secure; SameSite=Lax; Max-Age=3600; Path=/
+              description: New JWT token set as HttpOnly cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+              examples:
+                success:
+                  summary: Successful token refresh
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                    expires_in: 3600
+        '401':
+          description: Token invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expiredToken:
+                  summary: Token has expired
+                  value:
+                    error: token_expired
+                    detail: Token has expired, please login again
+                    type: authentication_error
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    error: invalid_token
+                    detail: Invalid or malformed token
+                    type: authentication_error
+
+  /logout:
+    post:
+      summary: Logout user
+      description: |
+        Clears JWT token from client (HttpOnly cookie deletion).
+        Backend remains stateless - no server-side session invalidation.
+      operationId: logoutUser
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: auth_token=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/
+              description: JWT token cookie cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logout successful
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notAuthenticated:
+                  summary: No valid token provided
+                  value:
+                    error: not_authenticated
+                    detail: Authentication required
+                    type: authentication_error
+
+tags:
+  - name: Authentication
+    description: User registration, login, token refresh, and logout endpoints

@@ -1,28 +1,33 @@
-# TODO Application - Phase I: Python Console
+# TODO Application - Phase II Step 1: REST API with Persistent Storage
 
-**Phase**: I - Foundation (In-Memory Python Console)
-**Version**: 1.0.0
+**Phase**: II Step 1 - Web API Foundation (No Authentication)
+**Version**: 2.0.0
 **Status**: Development
 
 ## Description
 
-A command-line TODO application built with Python that stores tasks in memory. This is Phase I of a 5-phase evolution from console app to cloud-deployed full-stack application.
+A RESTful API for task management built with FastAPI and SQLModel, with persistent storage in Neon Serverless PostgreSQL. This is Phase II Step 1 (of 3) - converting the console app to a web-based API while keeping authentication simple.
 
-### Features (Basic Tier)
+### Features (Basic Tier via REST API)
 
-- ✅ Add tasks with titles
-- ✅ View all tasks with IDs and completion status
-- ✅ Mark tasks as complete/incomplete
-- ✅ Update task titles
-- ✅ Delete tasks
-- ✅ Session-based persistence (data clears on exit)
+- ✅ Create tasks via POST /api/{user_id}/tasks
+- ✅ Retrieve all tasks via GET /api/{user_id}/tasks
+- ✅ Retrieve single task via GET /api/{user_id}/tasks/{id}
+- ✅ Update task titles via PUT /api/{user_id}/tasks/{id}
+- ✅ Delete tasks via DELETE /api/{user_id}/tasks/{id}
+- ✅ Toggle completion via PATCH /api/{user_id}/tasks/{id}/complete
+- ✅ Database persistence (Neon PostgreSQL)
+- ✅ User isolation by user_id (no authentication yet)
+- ✅ Auto-generated OpenAPI documentation at /docs
 
 ## Prerequisites
 
 - Python 3.10 or higher
 - pip (Python package manager)
+- Neon account (free tier): https://neon.tech
+- Git
 
-## Setup
+## Quick Start
 
 ### 1. Create Virtual Environment
 
@@ -41,33 +46,90 @@ source venv/bin/activate
 ### 2. Install Dependencies
 
 ```bash
-# Install development dependencies
+# Install production dependencies
+pip install -r requirements.txt
+
+# Install development dependencies (for testing)
 pip install -r requirements-dev.txt
 ```
 
-## Usage
-
-### Running the Application
+### 3. Configure Environment
 
 ```bash
-# From backend/ directory
-python -m src.main
+# Copy example environment file
+cp .env.example .env
 
-# Or directly
-python src/main.py
+# Edit .env and add your Neon database URL
+# DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 ```
 
-### Menu Options
+### 4. Setup Database
 
+```bash
+# Initialize Alembic (first time only)
+alembic init alembic
+
+# Run migrations to create tables
+alembic upgrade head
 ```
-TODO Application
-================
-1. View all tasks
-2. Add new task
-3. Update task
-4. Mark task complete/incomplete
-5. Delete task
-6. Exit
+
+### 5. Start API Server
+
+```bash
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**API Documentation**: http://localhost:8000/docs (Swagger UI)
+
+## API Usage
+
+### Using Swagger UI (Browser)
+
+1. Open http://localhost:8000/docs
+2. Click on any endpoint to try it out
+3. Enter parameters and request body
+4. Click "Execute" to send request
+
+### Using curl (Command Line)
+
+#### Create Task
+
+```bash
+curl -X POST "http://localhost:8000/api/user123/tasks" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Buy groceries"}'
+```
+
+#### List All Tasks
+
+```bash
+curl "http://localhost:8000/api/user123/tasks"
+```
+
+#### Get Single Task
+
+```bash
+curl "http://localhost:8000/api/user123/tasks/1"
+```
+
+#### Update Task
+
+```bash
+curl -X PUT "http://localhost:8000/api/user123/tasks/1" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Buy organic groceries"}'
+```
+
+#### Mark Complete
+
+```bash
+curl -X PATCH "http://localhost:8000/api/user123/tasks/1/complete"
+```
+
+#### Delete Task
+
+```bash
+curl -X DELETE "http://localhost:8000/api/user123/tasks/1"
 ```
 
 ## Development
@@ -114,50 +176,76 @@ pylint src/
 backend/
 ├── src/
 │   ├── __init__.py
+│   ├── main.py                  # FastAPI application entry point
+│   ├── config.py                # Configuration and environment variables
+│   ├── database.py              # SQLModel engine and session management
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── task.py           # Task entity with validation
+│   │   ├── task.py              # Task SQLModel with database fields
+│   │   └── schemas.py           # Pydantic request/response schemas
 │   ├── services/
 │   │   ├── __init__.py
-│   │   └── task_manager.py   # TaskManager business logic
-│   ├── cli/
+│   │   └── task_service.py      # Task CRUD operations with user isolation
+│   ├── api/
 │   │   ├── __init__.py
-│   │   └── menu.py           # CLI menu interface
-│   └── main.py               # Application entry point
+│   │   ├── dependencies.py      # FastAPI dependencies (get_db, etc.)
+│   │   ├── middleware.py        # Logging, CORS, error handling
+│   │   └── routes/
+│   │       ├── __init__.py
+│   │       └── tasks.py         # Task API endpoints (6 routes)
+│   └── cli/                     # Phase I console app (preserved)
+│       ├── __init__.py
+│       └── menu.py
 │
 ├── tests/
 │   ├── __init__.py
+│   ├── conftest.py              # Pytest fixtures (TestClient, test DB)
 │   ├── unit/
 │   │   ├── __init__.py
 │   │   ├── test_task.py
-│   │   └── test_task_manager.py
+│   │   ├── test_task_service.py
+│   │   └── test_schemas.py
 │   ├── integration/
 │   │   ├── __init__.py
-│   │   └── test_cli_flow.py
-│   └── conftest.py           # pytest fixtures
+│   │   ├── test_api_tasks.py
+│   │   └── test_database.py
+│   └── contract/
+│       ├── __init__.py
+│       └── test_openapi.py
 │
-├── requirements.txt          # Production dependencies (empty for Phase I)
-├── requirements-dev.txt      # Development dependencies
-├── pyproject.toml           # Project metadata and tool configs
-├── .pylintrc                # Pylint configuration
-├── mypy.ini                 # Mypy configuration
-└── README.md                # This file
+├── alembic/                     # Database migrations
+│   ├── versions/
+│   ├── env.py
+│   └── script.py.mako
+│
+├── .env.example                 # Environment variable template
+├── .env                         # Environment variables (not in git)
+├── requirements.txt             # Production dependencies (FastAPI, SQLModel, etc.)
+├── requirements-dev.txt         # Development dependencies (pytest, httpx, etc.)
+├── pyproject.toml               # Project metadata
+├── .pylintrc                    # Pylint configuration
+├── mypy.ini                     # Mypy configuration
+└── README.md                    # This file
 ```
 
 ## Architecture
 
 ### Clean Architecture Layers
 
-- **Models** (`src/models/`): Data entities (Task) with validation logic
-- **Services** (`src/services/`): Business logic (TaskManager with CRUD operations)
-- **CLI** (`src/cli/`): Presentation layer (menu-driven interface)
+- **Models** (`src/models/`): SQLModel entities (Task) and Pydantic schemas for API
+- **Services** (`src/services/`): Business logic with user isolation enforcement
+- **API Routes** (`src/api/routes/`): REST API endpoints (FastAPI)
+- **Middleware** (`src/api/middleware.py`): Logging, CORS, error handling
+- **Database** (`src/database.py`): SQLModel engine with connection pooling
 
 ### Data Storage
 
-Phase I uses in-memory storage via Python dictionaries:
-- Tasks stored in `Dict[int, Task]` for O(1) lookup by ID
-- Auto-incrementing integer IDs
-- No persistence across sessions (data clears on exit)
+Phase II Step 1 uses persistent PostgreSQL storage (Neon Serverless):
+- Tasks stored in `tasks` table with indexes on `user_id`
+- Auto-incrementing integer primary key `id`
+- Persistence across application restarts
+- User isolation via `user_id` filtering (no authentication verification yet)
+- Connection pooling: pool_size=5, max_overflow=10, pool_pre_ping=True
 
 ## Testing
 

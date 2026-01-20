@@ -206,5 +206,76 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 - `history/adr/` — Architecture Decision Records
 - `.specify/` — SpecKit Plus templates and scripts
 
+## Available Skills and Agents
+
+### Skills (Invoke with `/skill-name` or Skill tool)
+
+**Project-Specific Skills:**
+- `/better-auth` - Better Auth integration with shared secret JWT for Next.js + FastAPI
+- `/fastapi-backend-structure` - Complete FastAPI backend project structure for Todo app
+- `/fastapi-development` - FastAPI development with JWT auth, SQLModel, and secure APIs
+- `/neon-serverless-postgresql` - Neon Serverless PostgreSQL integration with SQLModel
+- `/nextjs16-development` - Next.js 16 with App Router and modern React patterns
+- `/shadcn-ui-development` - shadcn/ui component library with Next.js 16
+- `/tailwindcss-styling` - Tailwind CSS styling patterns and configuration
+- `/task-service` - SQLModel task service with user validation and isolation
+
+**General Skills:**
+- `/browser-use` - Browser automation with Playwright MCP (web scraping, testing)
+- `/context-7` - MCP integration for CLI coding workflows
+- `/skill-creator` - Create new custom skills for the project
+- `/theme-factory` - Style artifacts (slides, docs, HTML) with themes
+
+**SpecKit Plus Commands:**
+- `/sp.specify` - Create/update feature spec from natural language
+- `/sp.plan` - Execute implementation planning workflow
+- `/sp.tasks` - Generate dependency-ordered tasks from design artifacts
+- `/sp.taskstoissues` - Convert tasks to GitHub issues
+- `/sp.implement` - Execute implementation plan with TDD workflow
+- `/sp.clarify` - Ask targeted questions to refine underspecified areas
+- `/sp.analyze` - Cross-artifact consistency check (spec/plan/tasks)
+- `/sp.adr` - Create Architectural Decision Records
+- `/sp.phr` - Record AI exchange as Prompt History Record
+- `/sp.constitution` - Create/update project constitution
+- `/sp.checklist` - Generate custom feature checklist
+- `/sp.reverse-engineer` - Reverse engineer codebase into SDD artifacts
+- `/sp.git.commit_pr` - Autonomous Git workflow agent (commit + PR)
+
+### Specialized Agents (Invoke with Task tool)
+
+**Codebase Agents:**
+- `Explore` - Fast codebase exploration (use for "where/what/how" questions)
+  - Thoroughness levels: "quick", "medium", "very thorough"
+  - Use cases: Find file patterns, search keywords, understand architecture
+- `Plan` - Software architect for implementation strategy
+  - Use when: Need step-by-step implementation plan
+  - Returns: Design plans, critical files, trade-offs
+
+**Domain Expert Agents:**
+- `frontend-expert` - Next.js 16 App Router specialist
+  - Expertise: Dynamic parameters, auth integration, modern React patterns
+  - Use for: All Phase 2 Todo app frontend work
+- `backend-expert` - FastAPI development specialist
+  - Expertise: REST APIs, SQLModel, Neon PostgreSQL, JWT validation
+  - Use for: Backend API implementation with JWT auth
+- `auth-expert` - Better Auth + JWT integration specialist
+  - Expertise: JWT flow between Next.js and FastAPI with shared secret
+  - Use for: Authentication implementation (TypeScript + Python)
+
+**General Purpose Agents:**
+- `general-purpose` - Multi-step task automation
+  - Use for: Complex research, multi-round searches, exploratory tasks
+- `Bash` - Command execution specialist
+  - Use for: Git operations, terminal commands, deployment
+- `claude-code-guide` - Claude Code CLI help
+  - Use for: Questions about Claude Code features, hooks, settings
+
+**Best Practices:**
+1. Use `Explore` agent for open-ended codebase questions (not Glob/Grep directly)
+2. Use domain experts (`frontend-expert`, `backend-expert`, `auth-expert`) proactively for Phase 2 work
+3. Use `/sp.implement` for executing tasks with TDD workflow
+4. Use `/sp.adr` after making significant architectural decisions
+5. Create PHRs for all substantial work sessions
+
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.

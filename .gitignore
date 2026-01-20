@@ -89,8 +89,29 @@ logs/
 *.bak
 *.swp
 
+# Alembic migrations
+backend/alembic/versions/*.pyc
+backend/alembic/__pycache__/
+
+# Node.js / Next.js (Frontend)
+node_modules/
+.next/
+out/
+frontend/.env*
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+*.tsbuildinfo
+.npm
+.eslintcache
+
 # Project specific
 backend/.pytest_cache/
 backend/htmlcov/
 backend/.coverage
 backend/.mypy_cache/
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+tmpclaude-*

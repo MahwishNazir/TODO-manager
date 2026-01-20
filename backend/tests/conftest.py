@@ -1,106 +1,197 @@
 """
-Pytest configuration and fixtures for TODO application tests.
+Pytest configuration and fixtures for Phase II Step 2 tests.
 
-This module provides shared fixtures for all test modules.
+This module provides test fixtures for:
+- In-memory SQLite database for fast testing
+- FastAPI TestClient for API endpoint testing
+- Database session management
+- JWT authentication for protected endpoints
 """
 
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from fastapi.testclient import TestClient
+from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy.pool import StaticPool
+import jwt
+
+from src.main import app
+from src.api.dependencies import get_db
+from src.auth.jwt_handler import get_current_user, CurrentUser
+from src.config import settings
 
 
-@pytest.fixture
-def task_manager():
-    """Provide a fresh TaskManager instance for each test.
+# Create in-memory SQLite database for testing
+# StaticPool ensures the same database is used for all connections
+TEST_DATABASE_URL = "sqlite:///:memory:"
 
-    Returns:
-        TaskManager: Empty task manager with no tasks.
+test_engine = create_engine(
+    TEST_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 
-    Example:
-        def test_add_task(task_manager):
-            task = task_manager.add_task("Buy milk")
-            assert task.id == 1
+
+@pytest.fixture(scope="function")
+def test_session():
     """
-    # Import here to avoid circular imports during test collection
-    from src.services.task_manager import TaskManager
-    return TaskManager()
+    Provide a clean database session for each test.
 
+    This fixture creates all tables before each test and drops them
+    after the test completes, ensuring test isolation.
 
-@pytest.fixture
-def sample_tasks():
-    """Provide sample task data for testing.
-
-    Returns:
-        list: List of dictionaries with sample task data.
-
-    Example:
-        def test_multiple_tasks(task_manager, sample_tasks):
-            for task_data in sample_tasks:
-                task_manager.add_task(task_data['title'])
-            assert task_manager.count() == len(sample_tasks)
+    Yields:
+        Session: SQLModel database session for testing
     """
-    return [
-        {
-            'title': 'Buy groceries',
-            'completed': False
-        },
-        {
-            'title': 'Walk the dog',
-            'completed': False
-        },
-        {
-            'title': 'Write code',
-            'completed': True
-        }
-    ]
+    # Create all tables
+    SQLModel.metadata.create_all(test_engine)
+
+    # Create session
+    with Session(test_engine) as session:
+        yield session
+
+    # Drop all tables after test
+    SQLModel.metadata.drop_all(test_engine)
 
 
-@pytest.fixture
-def populated_task_manager(task_manager, sample_tasks):
-    """Provide a TaskManager pre-populated with sample tasks.
+@pytest.fixture(scope="function")
+def client(test_session: Session):
+    """
+    Provide FastAPI TestClient with test database.
+
+    This fixture overrides the get_db dependency to use the test
+    database instead of the production Neon database.
 
     Args:
-        task_manager: Empty task manager fixture
-        sample_tasks: Sample task data fixture
+        test_session: Test database session from test_session fixture
+
+    Yields:
+        TestClient: FastAPI test client for API testing
+    """
+
+    def override_get_db():
+        """Override get_db dependency to use test database."""
+        try:
+            yield test_session
+        except Exception:
+            test_session.rollback()
+            raise
+
+    # Override the dependency
+    app.dependency_overrides[get_db] = override_get_db
+
+    # Provide test client
+    with TestClient(app) as test_client:
+        yield test_client
+
+    # Clear dependency overrides after test
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def sample_user_id():
+    """
+    Provide a sample user ID for testing.
 
     Returns:
-        TaskManager: Task manager with 3 tasks added.
-
-    Example:
-        def test_view_tasks(populated_task_manager):
-            tasks = populated_task_manager.get_all_tasks()
-            assert len(tasks) == 3
+        str: Test user ID
     """
-    for task_data in sample_tasks:
-        task = task_manager.add_task(task_data['title'])
-        if task_data['completed']:
-            task_manager.mark_complete(task.id, True)
-    return task_manager
+    return "test_user_123"
 
 
-@pytest.fixture
-def mock_datetime(monkeypatch):
-    """Mock datetime.utcnow() for consistent timestamps in tests.
+@pytest.fixture(scope="function")
+def another_user_id():
+    """
+    Provide a different user ID for testing user isolation.
+
+    Returns:
+        str: Another test user ID
+    """
+    return "test_user_456"
+
+
+def create_jwt_token(user_id: str, email: str = "test@example.com") -> str:
+    """
+    Create a valid JWT token for testing.
 
     Args:
-        monkeypatch: pytest monkeypatch fixture
+        user_id: User ID to encode in the token
+        email: Email address to encode in the token
 
     Returns:
-        datetime: Fixed datetime object (2026-01-10 12:00:00 UTC)
-
-    Example:
-        def test_task_created_at(mock_datetime):
-            from src.models.task import Task
-            task = Task(id=1, title="Test")
-            assert task.created_at == mock_datetime
+        str: Encoded JWT token
     """
-    fixed_time = datetime(2026, 1, 10, 12, 0, 0)
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "iat": now,
+        "exp": now + timedelta(hours=1),
+        "aud": settings.JWT_AUDIENCE,
+        "iss": settings.JWT_ISSUER,
+    }
 
-    class MockDatetime:
-        @staticmethod
-        def utcnow():
-            return fixed_time
+    token = jwt.encode(
+        payload,
+        settings.BETTER_AUTH_SECRET,
+        algorithm=settings.JWT_ALGORITHM,
+    )
 
-    import src.models.task as task_module
-    monkeypatch.setattr(task_module, 'datetime', MockDatetime)
+    return token
 
-    return fixed_time
+
+@pytest.fixture(scope="function")
+def sample_user_token(sample_user_id: str) -> str:
+    """
+    Provide a valid JWT token for the sample user.
+
+    Args:
+        sample_user_id: User ID from sample_user_id fixture
+
+    Returns:
+        str: JWT token for sample user
+    """
+    return create_jwt_token(sample_user_id, "test@example.com")
+
+
+@pytest.fixture(scope="function")
+def another_user_token(another_user_id: str) -> str:
+    """
+    Provide a valid JWT token for another user.
+
+    Args:
+        another_user_id: User ID from another_user_id fixture
+
+    Returns:
+        str: JWT token for another user
+    """
+    return create_jwt_token(another_user_id, "another@example.com")
+
+
+@pytest.fixture(scope="function")
+def auth_headers(sample_user_token: str) -> dict:
+    """
+    Provide authentication headers with JWT token.
+
+    Args:
+        sample_user_token: JWT token from sample_user_token fixture
+
+    Returns:
+        dict: Headers with Authorization bearer token
+    """
+    return {"Authorization": f"Bearer {sample_user_token}"}
+
+
+@pytest.fixture(scope="function")
+def another_auth_headers(another_user_token: str) -> dict:
+    """
+    Provide authentication headers for another user.
+
+    Args:
+        another_user_token: JWT token from another_user_token fixture
+
+    Returns:
+        dict: Headers with Authorization bearer token
+    """
+    return {"Authorization": f"Bearer {another_user_token}"}
+

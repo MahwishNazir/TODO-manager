@@ -1,60 +1,124 @@
 """
-Main entry point for TODO Application.
+FastAPI application entry point for Phase II Step 1.
 
-This module serves as the application entry point. It imports and
-launches the main menu loop to start the interactive CLI session.
-
-Usage:
-    python -m src.main
-    
-    Or from backend directory:
-    python src/main.py
+This module initializes the FastAPI application with middleware,
+exception handlers, and API routes.
 """
 
-from src.cli.menu import main_loop
+from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
+
+from src.config import settings
+from src.api.middleware import setup_logging_middleware
 
 
-def main() -> None:
-    """Application entry point.
+# Create FastAPI application instance
+app = FastAPI(
+    title="TODO Application API",
+    description="REST API for task management with persistent storage (Phase II Step 1)",
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
-    Creates a new TaskManager instance and starts the interactive
-    menu loop. All tasks are stored in memory for the session.
 
-    **Session-Based Persistence (User Story 5):**
-    - Tasks persist only during the current session
-    - All data is lost when application exits
-    - No file persistence in Phase I
+# Configure CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["*"],
+)
+
+
+# Setup logging middleware
+setup_logging_middleware(app)
+
+
+# Global exception handlers
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(
+    request: Request, exc: SQLAlchemyError
+) -> JSONResponse:
+    """
+    Handle SQLAlchemy database errors.
+
+    Args:
+        request: FastAPI request object
+        exc: SQLAlchemy exception
 
     Returns:
-        None
-
-    Side Effects:
-        - Starts interactive CLI session
-        - Blocks until user exits (option 6)
-        - Tasks are lost when session ends (in-memory only for Phase I)
-
-    Example:
-        >>> if __name__ == "__main__":
-        ...     main()
-        # Launches interactive TODO application
+        JSONResponse with 500 status code
     """
-    try:
-        main_loop()
-    except KeyboardInterrupt:
-        # Graceful exit on Ctrl+C (US5)
-        print("\n\n" + "=" * 50)
-        print("[WARNING] Application interrupted by user (Ctrl+C)")
-        print("=" * 50)
-        print("\n[INFO] Session-based storage:")
-        print("  - All tasks have been lost (not saved)")
-        print("  - No data persisted to disk")
-        print("\nGoodbye!")
-        print("=" * 50)
-    except Exception as e:
-        print(f"\n[ERROR] An unexpected error occurred: {e}")
-        print("Please report this issue if it persists.")
-        raise
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": "Database error",
+            "detail": "An error occurred while accessing the database",
+            "type": "database_error",
+        },
+    )
 
 
-if __name__ == "__main__":
-    main()
+@app.exception_handler(ValueError)
+async def value_error_exception_handler(
+    request: Request, exc: ValueError
+) -> JSONResponse:
+    """
+    Handle validation errors (ValueError).
+
+    Args:
+        request: FastAPI request object
+        exc: ValueError exception
+
+    Returns:
+        JSONResponse with 422 status code
+    """
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": "Validation error",
+            "detail": str(exc),
+            "type": "validation_error",
+        },
+    )
+
+
+# Health check endpoint
+@app.get("/health", tags=["Health"])
+async def health_check():
+    """
+    Health check endpoint to verify API is running.
+
+    Returns:
+        dict: Status information
+    """
+    return {
+        "status": "healthy",
+        "version": "2.0.0",
+        "phase": "II Step 1 - REST API",
+    }
+
+
+# Root endpoint
+@app.get("/", tags=["Root"])
+async def root():
+    """
+    Root endpoint with API information.
+
+    Returns:
+        dict: Welcome message and documentation link
+    """
+    return {
+        "message": "TODO Application REST API - Phase II Step 1",
+        "docs": "/docs",
+        "health": "/health",
+    }
+
+
+# Register task routes
+from src.api.routes import tasks
+app.include_router(tasks.router, prefix="/api", tags=["Tasks"])
