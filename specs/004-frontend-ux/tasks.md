@@ -276,8 +276,8 @@
 - [X] T128 Ensure color contrast meets WCAG 2.1 AA standards
 - [X] T129 [P] Add hover effects and transitions to interactive elements
 - [X] T130 Create home page with redirect logic in frontend/app/page.tsx
-- [ ] T131 [P] Create README.md with setup and usage instructions in frontend/README.md
-- [ ] T132 Run Lighthouse audit and fix any issues
+- [X] T131 [P] Create README.md with setup and usage instructions in frontend/README.md
+- [X] T132 Run Lighthouse audit and fix any issues
 - [X] T133 Final review of all toast messages for consistency
 - [X] T134 Verify all loading states match final content dimensions (zero CLS)
 

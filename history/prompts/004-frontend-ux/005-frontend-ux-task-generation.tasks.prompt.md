@@ -1,26 +1,33 @@
 ---
-id: 005
-title: Frontend UX Task Breakdown Generation
-stage: tasks
-date: 2026-01-19
-surface: agent
-model: claude-opus-4-5
-feature: 004-frontend-ux
-branch: 004-frontend-ux
-user: User
-command: /sp.tasks
-labels: ["frontend", "ux", "tasks", "task-breakdown", "phase-2-step-3", "next-js", "shadcn-ui"]
+id: "005"
+title: "Frontend UX Task Breakdown Generation"
+stage: "tasks"
+date: "2026-01-19"
+surface: "agent"
+model: "claude-opus-4-5"
+feature: "004-frontend-ux"
+branch: "004-frontend-ux"
+user: "User"
+command: "/sp.tasks"
+labels:
+  - "frontend"
+  - "ux"
+  - "tasks"
+  - "task-breakdown"
+  - "phase-2-step-3"
+  - "next-js"
+  - "shadcn-ui"
 links:
-  spec: ../../../specs/004-frontend-ux/spec.md
+  spec: "../../../specs/004-frontend-ux/spec.md"
   ticket: null
   adr: null
   pr: null
 files:
-  - specs/004-frontend-ux/tasks.md (created)
+  - "specs/004-frontend-ux/tasks.md (created)"
 tests:
-  - Task format validation: 134/134 tasks follow checklist format (PASS)
-  - User story labels: 86 tasks correctly labeled with [US#] (PASS)
-  - Parallel markers: 26 tasks marked [P] for parallel execution (PASS)
+  - "Task format validation: 134/134 tasks follow checklist format (PASS)"
+  - "User story labels: 86 tasks correctly labeled with [US#] (PASS)"
+  - "Parallel markers: 26 tasks marked [P] for parallel execution (PASS)"
 ---
 
 ## Prompt
@@ -91,11 +98,11 @@ Successfully generated comprehensive task breakdown in `specs/004-frontend-ux/ta
 
 - Failure modes observed: Previous PHR 003 claimed tasks.md existed but file was not written. This session properly created the file and validated its contents.
 - Graders run and results (PASS/FAIL):
-  - Task Format: PASS - All 134 tasks follow checklist format with IDs and file paths
-  - Story Organization: PASS - 8 user stories properly organized into phases with priority ordering
-  - Dependency Mapping: PASS - Clear execution order with parallel opportunities noted
-  - Completeness: PASS - All spec requirements (60 FRs, 8 user stories) covered in tasks
-  - File Existence: PASS - File created and verified at specs/004-frontend-ux/tasks.md
-  - Overall: PASS (5/5)
+    - Task Format: PASS - All 134 tasks follow checklist format with IDs and file paths
+    - Story Organization: PASS - 8 user stories properly organized into phases with priority ordering
+    - Dependency Mapping: PASS - Clear execution order with parallel opportunities noted
+    - Completeness: PASS - All spec requirements (60 FRs, 8 user stories) covered in tasks
+    - File Existence: PASS - File created and verified at specs/004-frontend-ux/tasks.md
+    - Overall: PASS (5/5)
 - Prompt variant (if applicable): Standard /sp.tasks workflow after /sp.analyze identified missing file
 - Next experiment (smallest change to try): Add automated file existence verification as post-task-generation step to prevent orphaned PHRs claiming files exist when they don't
