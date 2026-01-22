@@ -41,7 +41,7 @@ export function Header() {
 
           <Link href="/tasks" className="flex items-center gap-2">
             <ListTodo className="h-6 w-6 text-primary" />
-            <span className="font-bold text-xl">TaskFlow</span>
+            <span className="brand-text brand-gradient text-xl">TaskFlow</span>
           </Link>
         </div>
 

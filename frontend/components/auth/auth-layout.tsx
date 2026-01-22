@@ -14,11 +14,11 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children, title, description, footer }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-main p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <h1 className="text-3xl font-bold text-primary">TaskFlow</h1>
+            <h1 className="text-2xl sm:text-3xl brand-text brand-gradient">TaskFlow</h1>
           </Link>
         </div>
         <Card className="shadow-lg">

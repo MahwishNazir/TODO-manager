@@ -34,7 +34,7 @@ export default function Home() {
       {/* Client component for auth redirect - minimal JS */}
       <AuthRedirect />
 
-      <main className="min-h-screen bg-gradient-to-br from-background to-muted/50">
+      <main className="min-h-screen bg-gradient-main">
         {/* Theme Toggle in Corner */}
         <div className="absolute top-4 right-4">
           <ThemeToggle />
@@ -43,7 +43,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-16">
           <div className="flex flex-col items-center justify-center text-center">
             <div className="mb-8">
-              <h1 className="text-4xl sm:text-5xl font-bold text-primary mb-4">TaskFlow</h1>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl brand-text brand-gradient mb-4">TaskFlow</h1>
               <p className="text-lg sm:text-xl text-muted-foreground max-w-md">
                 A modern, responsive task management app to keep you organized and productive.
               </p>
