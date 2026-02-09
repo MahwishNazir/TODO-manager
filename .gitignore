@@ -10,8 +10,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -88,6 +88,7 @@ logs/
 *.temp
 *.bak
 *.swp
+tmpclaude-*-cwd
 
 # Alembic migrations
 backend/alembic/versions/*.pyc
