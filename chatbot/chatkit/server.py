@@ -196,6 +196,11 @@ When an error occurs, explain what went wrong and suggest alternatives."""
             response_text = ""
             async for event in result.stream_events():
                 if event.type == "raw_response_event":
+                    # Skip function call argument deltas — only process text deltas
+                    event_type = getattr(event.data, "type", "")
+                    if "function_call_arguments" in event_type:
+                        continue
+
                     # Text delta from model
                     delta = getattr(event.data, "delta", None)
                     if delta:
