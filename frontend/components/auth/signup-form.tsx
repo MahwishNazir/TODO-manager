@@ -52,7 +52,9 @@ export function SignupForm() {
       router.push(DEFAULT_AUTH_REDIRECT);
       router.refresh();
     } catch (error) {
-      toast.error("An unexpected error occurred. Please try again.");
+      console.error("Sign up error:", error);
+      const message = error instanceof Error ? error.message : "An unexpected error occurred. Please try again.";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

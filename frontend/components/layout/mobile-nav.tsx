@@ -11,7 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, LogOut, User, ListTodo, Home } from "lucide-react";
+import { Menu, LogOut, User, ListTodo, Home, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ export function MobileNav() {
 
   const navItems = [
     { href: "/tasks", label: "Tasks", icon: ListTodo },
+    { href: "/chat", label: "Chat", icon: MessageSquare },
   ];
 
   return (

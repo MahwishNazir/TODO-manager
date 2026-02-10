@@ -11,15 +11,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, ListTodo } from "lucide-react";
+import { LogOut, User, ListTodo, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { MobileNav } from "./mobile-nav";
 import { ThemeToggle } from "./theme-toggle";
+import { cn } from "@/lib/utils";
 
 export function Header() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     try {
@@ -43,9 +45,39 @@ export function Header() {
             <ListTodo className="h-6 w-6 text-primary" />
             <span className="brand-text brand-gradient text-xl">TaskFlow</span>
           </Link>
+
+          {/* Desktop Navigation Links (T016 active state) */}
+          <nav className="hidden md:flex items-center gap-1 ml-6">
+            <Link href="/tasks">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "gap-2",
+                  pathname === "/tasks" && "bg-primary/10 text-primary"
+                )}
+              >
+                <ListTodo className="h-4 w-4" />
+                Tasks
+              </Button>
+            </Link>
+            <Link href="/chat">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "gap-2",
+                  pathname === "/chat" && "bg-primary/10 text-primary"
+                )}
+              >
+                <MessageSquare className="h-4 w-4" />
+                Chat
+              </Button>
+            </Link>
+          </nav>
         </div>
 
-        {/* Desktop Navigation */}
+        {/* Desktop User Menu */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <div className="hidden md:flex items-center gap-4">
