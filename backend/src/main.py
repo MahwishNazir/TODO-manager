@@ -5,13 +5,53 @@ This module initializes the FastAPI application with middleware,
 exception handlers, and API routes.
 """
 
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+from sqlmodel import SQLModel
 
 from src.config import settings
 from src.api.middleware import setup_logging_middleware
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Run database migrations on startup."""
+    from src.database import engine
+    # Import all models so SQLModel.metadata registers them
+    import src.models  # noqa: F401
+
+    try:
+        # Create any tables that don't exist yet
+        SQLModel.metadata.create_all(engine)
+
+        # Add Phase III columns to existing tasks table (idempotent)
+        with engine.connect() as conn:
+            conn.execute(text(
+                "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority VARCHAR(10) NOT NULL DEFAULT 'medium'"
+            ))
+            conn.execute(text(
+                "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'incomplete'"
+            ))
+            conn.execute(text(
+                "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS due_date DATE"
+            ))
+            conn.execute(text(
+                "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE"
+            ))
+            conn.commit()
+        logger.info("Database migrations completed successfully")
+    except Exception as e:
+        logger.warning(f"Migration warning: {e}")
+
+    yield
 
 
 # Create FastAPI application instance
@@ -21,6 +61,7 @@ app = FastAPI(
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 
@@ -53,6 +94,7 @@ async def sqlalchemy_exception_handler(
     Returns:
         JSONResponse with 500 status code
     """
+    logger.error(f"Database error on {request.method} {request.url.path}: {exc}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={

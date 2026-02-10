@@ -5,14 +5,14 @@ Loads environment variables from .env file and provides
 centralized configuration settings for the application.
 """
 
-import os
+from pathlib import Path
 from typing import List
-from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-# Load environment variables from .env file
-load_dotenv()
+# Get the backend directory (parent of src/)
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE = BACKEND_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -33,31 +33,30 @@ class Settings(BaseSettings):
         JWT_AUDIENCE: JWT audience claim (todo-api)
     """
 
-    # Database configuration
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql://user:password@localhost/dbname"
+    # Use modern pydantic-settings configuration
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE),
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
     )
+
+    # Database configuration
+    DATABASE_URL: str = "postgresql://user:password@localhost/dbname"
 
     # API settings
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-    DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
+    LOG_LEVEL: str = "INFO"
+    DEBUG: bool = False
 
     # CORS configuration
-    CORS_ORIGINS: str = os.getenv(
-        "CORS_ORIGINS",
-        "http://localhost:3000,http://localhost:3001"
-    )
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
 
     # Server configuration
-    HOST: str = os.getenv("HOST", "0.0.0.0")
-    PORT: int = int(os.getenv("PORT", "8000"))
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
 
     # JWT Authentication (Phase II Step 2)
-    BETTER_AUTH_SECRET: str = os.getenv(
-        "BETTER_AUTH_SECRET",
-        "your-256-bit-secret-key-here-replace-with-actual-secret"
-    )
+    BETTER_AUTH_SECRET: str = "your-256-bit-secret-key-here-replace-with-actual-secret"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_SECONDS: int = 3600  # 1 hour
     JWT_ISSUER: str = "todo-app"
@@ -72,11 +71,6 @@ class Settings(BaseSettings):
             List[str]: List of allowed CORS origins
         """
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
-
-    class Config:
-        """Pydantic configuration."""
-        env_file = ".env"
-        case_sensitive = True
 
 
 # Global settings instance

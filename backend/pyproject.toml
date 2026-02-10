@@ -4,13 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "todo-app"
-version = "1.0.0"
-description = "Phase I Python Console TODO Application"
+version = "2.0.0"
+description = "Phase II TODO Application - REST API with FastAPI"
 requires-python = ">=3.10"
 authors = [
     {name = "TODO App Team"}
 ]
 readme = "README.md"
+dependencies = [
+    "fastapi>=0.104.0",
+    "sqlmodel>=0.0.14",
+    "psycopg2-binary>=2.9.0",
+    "alembic>=1.13.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.0.0",
+    "PyJWT>=2.10.0",
+]
 
 [tool.black]
 line-length = 88

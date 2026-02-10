@@ -1,8 +1,8 @@
-# Production dependencies for Phase II Step 1
+# Production dependencies for Phase II
 # Web framework and database
 fastapi>=0.104.0
 sqlmodel>=0.0.14
-uvicorn[standard]>=0.24.0
+# Note: uvicorn not needed for Vercel serverless
 
 # PostgreSQL driver
 psycopg2-binary>=2.9.0
@@ -12,9 +12,15 @@ alembic>=1.13.0
 
 # Configuration
 python-dotenv>=1.0.0
-
-# Validation (included with FastAPI but explicit for clarity)
 pydantic>=2.5.0
+pydantic-settings>=2.0.0
 
 # JWT Authentication (Phase II Step 2)
 PyJWT>=2.10.0
+
+# Testing (Phase III)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# MCP Server (Phase III - Tools Layer)
+mcp>=1.0.0
